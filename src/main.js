@@ -25,11 +25,14 @@ export const refs = {
 export let query = "";
 export let currentPage = 1;
 export let pageLimit = 15;
+let maxPage = 0;
 
 hideLoader();
 hideLoadBtn();
 
-refs.form.addEventListener("submit", async event => {
+refs.form.addEventListener("submit", onFormSubmit)
+
+async function onFormSubmit (event) {
     event.preventDefault();
     currentPage = 1;
     refs.gallery.innerHTML = "";
@@ -37,52 +40,54 @@ refs.form.addEventListener("submit", async event => {
     if (query !== '') {
         try {
             const data = await getImages(query, currentPage);
-            const maxPage = Math.ceil(data.totalHits / pageLimit);
+            
+            maxPage = Math.ceil(data.totalHits / pageLimit);
             renderImage(data);
             hideLoader();
-            if (currentPage >= maxPage) {
-                hideLoadBtn();
-                displayMessage("We're sorry, but you've reached the end of search results.")
-            } else {
-                showLoadBtn();
-            }
+        checkBtnStatus();
+
         } catch (error) {
             console.log(error);
             displayMessage("An error occurred while fetching data.");
-            hideLoadBtn();
         }
+
     } else {
         displayMessage("Empty field!");
-        hideLoadBtn();
+        checkBtnStatus();
     }
-    form.reset();
-});
+};
 
 
-refs.loadBtn.addEventListener("click", async handleLoadMore => {
+refs.loadBtn.addEventListener("click", handleLoadMore);
+
+async function handleLoadMore (){
     currentPage += 1;
+
     try {
         const data = await getImages(query, currentPage);
-        refs.loader.style.display = "none";
+hideLoader();
         renderImage(data);
-        showLoadBtn();
+
+        maxPage = Math.ceil(data.totalHits / pageLimit);
+        checkBtnStatus();
+        if (currentPage >= maxPage) {
+           displayMessage("Sorry, you have reached the end of collection.")
+       }
+       requestAnimationFrame(() => {
         const item = document.querySelector(".gallery-item");
         const rect = item.getBoundingClientRect().height;
         scrollBy({
             top: rect,
             behavior: "smooth",
+        });
         })
      
-        const maxPage = Math.ceil(data.totalHits / pageLimit);
-        if (currentPage >= maxPage) {
-            hideLoadBtn();
-        }
     } catch (error) {
         console.log(error);
         displayMessage("An error occurred while fetching data.");
-        hideLoadBtn();
+        checkBtnStatus();
     }
-});
+};
 
 
 export function displayMessage(message) {
@@ -90,7 +95,7 @@ export function displayMessage(message) {
         title: 'Error',
         message: message,
         position: "topRight",
-        backgroundColor: "red",
+        backgroundColor: "skyblue",
     });
 }
 
@@ -101,6 +106,14 @@ export function hideLoader() {
 export function showLoader() {
     refs.loader.style.display = "block";
 }
+
+function checkBtnStatus() {
+    if (currentPage >= maxPage) {
+      hideLoadBtn();
+    } else {
+      showLoadBtn();
+    }
+  }
 
 function hideLoadBtn() {
     refs.loadBtn.style.display = "none";
